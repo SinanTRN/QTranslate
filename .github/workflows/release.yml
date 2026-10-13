@@ -1,0 +1,49 @@
+name: Release
+
+# "v" ile başlayan bir etiket gönderildiğinde (ör. v0.1.0) Windows için derler
+# ve kurulum dosyası + taşınabilir exe'yi GitHub Releases'a yükler.
+on:
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: swatinem/rust-cache@v2
+        with:
+          workspaces: "./src-tauri -> target"
+
+      - run: npm ci
+
+      - uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tagName: ${{ github.ref_name }}
+          releaseName: "QTranslate ${{ github.ref_name }}"
+          releaseBody: |
+            **Kurulum:** `QTranslate_*_x64-setup.exe` dosyasını indirip çalıştır.
+            **Kurulumsuz:** `QTranslate-portable.exe` dosyasını indirip doğrudan aç.
+          releaseDraft: false
+          prerelease: false
+
+      - name: Taşınabilir exe'yi yükle
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          cp src-tauri/target/release/QTranslate.exe QTranslate-portable.exe
+          gh release upload "${{ github.ref_name }}" QTranslate-portable.exe --clobber
