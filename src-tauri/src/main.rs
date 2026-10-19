@@ -139,6 +139,11 @@ fn save_settings(app: AppHandle, deepl_key: String, autostart: bool) -> Result<S
         settings::set_string(&app, KEY_DEEPL, key)?;
     }
 
+    // Debug exe konsol açar ve dev sunucusu olmadan çalışmaz; başlangıca yazılmasın.
+    if cfg!(debug_assertions) && autostart {
+        return Err("Geliştirme sürümünde otomatik başlatma açılamaz.".into());
+    }
+
     let launcher = app.autolaunch();
     if launcher.is_enabled().unwrap_or(false) != autostart {
         let res = if autostart { launcher.enable() } else { launcher.disable() };
@@ -213,6 +218,15 @@ fn main() {
             app.manage(shortcut::init(&handle));
 
             setup_tray(&handle)?;
+
+            // Başlangıç kaydını çalışan exe'nin yoluna güncelle (exe taşınmış olabilir).
+            #[cfg(not(debug_assertions))]
+            {
+                let launcher = handle.autolaunch();
+                if launcher.is_enabled().unwrap_or(false) {
+                    let _ = launcher.enable();
+                }
+            }
 
             // İlk çalıştırmada (anahtar yokken) pencereyi aç ki ayarlar görünsün.
             if settings::get_string(&handle, KEY_DEEPL).is_none() {
