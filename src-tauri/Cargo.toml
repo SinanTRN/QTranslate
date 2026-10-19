@@ -1,6 +1,6 @@
 [package]
 name = "qtranslate"
-version = "0.1.0"
+version = "0.1.1"
 description = "Kısayolla açılan hafif çeviri çubuğu"
 edition = "2021"
 
